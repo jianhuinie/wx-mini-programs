@@ -1,0 +1,10 @@
+<import src="../components/bottomTab/index.wxml" />
+<view class="all-videos">
+    <view class="videos-container videos-fun">
+        <view class="video-item" wx:for="{{funVideos}}" wx:key="{{index}}">
+            <image src="{{item.coverUrl}}"></image>
+            <!-- <view class="video-name">{{item.name}}</view> -->
+        </view>
+    </view>
+    <template is="bottomtab" data="{{activedTab: activedTab}}" />
+</view>

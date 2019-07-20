@@ -1,10 +1,11 @@
 /**
  * @file 这里提供一些跟小程序api相关的方法的抽取
- * @author codecooker
+ * @author niejianhui
  */
+//类似jquery $.extend 方法
+import config from './config';
 
- //类似jquery $.extend 方法
- function extend() {
+function extend() {
     function isArray(elems) {
         return Object.prototype.toString.call(elems).indexOf('Array') > -1;
     }
@@ -18,11 +19,11 @@
         target = arguments[1] || {};
         i = 2;
     }
-    if (typeof target !== 'object'  && typeof target !== 'function') {
+    if (typeof target !== 'object' && typeof target !== 'function') {
         target = {};
     }
     if (length === i) {
-       //不考虑这种情况
+        //不考虑这种情况
     }
     for (; i < length; i++) {
         options = arguments[i];
@@ -33,16 +34,14 @@
                 if (src === copy) {
                     continue;
                 }
-                if (deep && copy &&  (typeof copy === 'object' || isArray(copy))) {
+                if (deep && copy && (typeof copy === 'object' || isArray(copy))) {
                     if (!isArray(copy)) {
                         clone = src || {};
-                    }
-                    else {
-                         clone = src || [];
+                    } else {
+                        clone = src || [];
                     }
                     target[name] = extend(deep, clone, copy);
-                }
-                else if (copy){
+                } else if (copy) {
                     target[name] = copy;
                 }
             }
@@ -50,13 +49,14 @@
     }
     return target;
 }
+
 const TOKEN = 'TOKEN';
 const wxService = {
     /**
      * 错误处理弹窗
      * options 参照官方文档
      */
-    showErrorDialog: function (content) {
+    showErrorDialog: function(content) {
         wx.showModal({
             title: '提示',
             showCancel: false,
@@ -79,7 +79,7 @@ const wxService = {
      * options.loadingMask  loading是否显示透明蒙层，防止触摸穿透 默认 false isShowLoading 为true有效
      * loading 暂且支持显示隐藏 不支持回调相关函数
      */
-    sendWxRequest: function (options) {
+    sendWxRequest: function(options) {
         if (options.isShowLoading) {
             wx.showLoading({
                 title: options.loadingTip || '加载中',
@@ -90,22 +90,30 @@ const wxService = {
         var method = options.method || 'GET';
         var header = options.header || {};
         var defaultHeader = {
-            'content-type': 'application/x-www-form-urlencoded',
+            "content-type": "application/json",
+            // 'content-type': 'application/x-www-form-urlencoded',
             'X-Requested-With': 'XMLHttpRequest'
         };
         if (method === 'POST') {
             header = extend(true, header, defaultHeader);
         }
-        //每个请求加上token
-        var data = extend(true, options.data || {}, {token: wx.getStorageSync(TOKEN)});
-
+        //加loggerId
+        var profile = wx.getStorageSync('PROFILE');
+        var loggerId = '';
+        if (profile) {
+            var timeStamp = +new Date();
+            loggerId = profile.userId + '_' + timeStamp;
+        }
+        //每个请求加上token 和appVersion
+        var data = extend(true, options.data || {}, { token: wx.getStorageSync(TOKEN), appVersion: config.APP_VERSION, loggerId: loggerId });
+        console.log("TOKEN:" + wx.getStorageSync(TOKEN));
         wx.request({
             url: options.url,
             data: data,
             method: method,
             header: header,
             dataType: options.dataType || 'json',
-            success: function (response) {
+            success: function(response) {
                 options.isShowLoading && wx.hideLoading();
                 //resData为后端的整体返回
                 var resData = response.data;
@@ -115,30 +123,34 @@ const wxService = {
                     if (options.doneHandler && (typeof options.doneHandler === 'function')) {
                         options.doneHandler(backendData);
                     }
-                }
-                //401  未登录 重定向到登录页
-                else if (resData.code === 401) {
-                    //
-                }
-                else {
+                } else if (resData.code === 401) {
+                    wx.clearStorageSync();
+                    wx.reLaunch({
+                        url: '/pages/loading/index'
+                    });
+                } else {
                     if (options.failCodeHandler && (typeof options.failCodeHandler === 'function')) {
                         options.failCodeHandler(resData);
-                    }
-                    else {
-                        wxService.showErrorDialog(resData.msg + resData.track_id);
+                    } else {
+                        wxService.showErrorDialog(resData.msg);
                     }
                 }
             },
-            fail: function (err) {
+            fail: function(err) {
                 options.isShowLoading && wx.hideLoading();
                 if (options.failHandler && (typeof options.failHandler === 'function')) {
                     options.failHandler(err);
-                }
-                else {
-                    wxService.showErrorDialog(err);
+                } else {
+                    if (options.retryCount && options.retryCount >= 3) {
+                        // wxService.showErrorDialog(err.errMsg);
+                        wxService.showErrorDialog('连接失败，请重试');
+                    } else {
+                        options.retryCount = options.retryCount ? (++options.retryCount) : 1;
+                        wxService.sendWxRequest(options);
+                    }
                 }
             },
-            complete: function (response) {
+            complete: function(response) {
                 options.isShowLoading && wx.hideLoading();
                 if (options.completeHandler && (typeof options.failHandler === 'function')) {
                     options.completeHandler(response);

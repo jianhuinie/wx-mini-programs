@@ -1,7 +1,7 @@
 /**
  * @file 获取openid
  * @path /auth/get-openid
- * @author codecooker
+ * @author niejianhui
  */
 var mockCreatFunction = function() {
     'use strict';
@@ -13,8 +13,8 @@ var mockCreatFunction = function() {
     };
 
     data.data = {
-        openid: 12,
-        token: 'hsdahsfdjhdsjfkhsdjkfhjsdk'
+        recommend_video: [],
+        positive_video: []
     };
 
     return data;

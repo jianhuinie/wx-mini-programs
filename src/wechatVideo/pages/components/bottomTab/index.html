@@ -1,0 +1,18 @@
+<template name="bottomtab">
+    <view class="bottom-tab" wx:if="{{activedTab === 1}}">
+        <view class="tab-item active">
+            <text>推荐</text>
+        </view>
+        <navigator open-type="redirect" url="/pages/allVideos/index" class="tab-item">
+            <text>所有视频</text>
+        </navigator>
+    </view>
+    <view class="bottom-tab" wx:if="{{activedTab === 2}}">
+        <navigator open-type="redirect" url="/pages/index/index" class="tab-item">
+            <text>推荐</text>
+        </navigator>
+        <view class="tab-item active">
+            <text>所有视频</text>
+        </view>
+    </view>
+</template>
